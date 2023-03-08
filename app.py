@@ -23,7 +23,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'CS460'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'wy#3HACHI251974'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost' 
 mysql.init_app(app)
@@ -208,7 +208,7 @@ def getallpictures():
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
 def browsepictures():
-	return  render_template('browsepictures.html', name=flask_login.current_user.id, allphotos=getallpictures, base64=base64)
+	return  render_template('browsepictures.html', name=flask_login.current_user.id, allphotos=getallpictures(), base64=base64)
 #end photo uploading code
 
 
