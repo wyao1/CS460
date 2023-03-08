@@ -208,9 +208,7 @@ def getallpictures():
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
 def browsepictures():
-	cursor = conn.cursor()
-	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
-	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
+	return  render_template('browsepictures.html', name=flask_login.current_user.id, allphotos=getallpictures, base64=base64)
 #end photo uploading code
 
 
