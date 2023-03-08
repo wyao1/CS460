@@ -1,0 +1,30 @@
+{% if message %}
+  <h4>{{message}}!</h4>
+{% endif %}
+<title>Photoshare</title>
+{% if name %}
+  <h1>Hello {{ name }}!</h1>
+{% endif %}
+
+{% if photos %}
+<h2>Here are your photos</h2>
+    <ul>
+    {% for photo in photos %}
+
+        <li>{{photo[2]}}<br>
+        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+
+
+
+<p> <a href='/browsepictures'>Browse Pictures!</a> </p>
+<p> <a href='/browsealbums'> Browse Albums!</a> </p>
+
+&nbsp; &nbsp;
+
+<p> <strong> <a href='/login'>Log In!</a> </strong> </p>
+<p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+<p> <a href='/'>Home</a> </p>
