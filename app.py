@@ -23,7 +23,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'wy#3HACHI251974'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'CS460'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost' 
 mysql.init_app(app)
@@ -195,6 +195,22 @@ def upload_file():
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
+#end photo uploading code
+
+#gets all the pictures from database
+def getallpictures():
+	cursor = conn.cursor()
+	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
+	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
+
+
+
+#browse pictures
+@app.route('/browsepictures', methods=['GET', 'POST'])
+def browsepictures():
+	cursor = conn.cursor()
+	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
+	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 #end photo uploading code
 
 
