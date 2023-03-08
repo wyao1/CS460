@@ -1,3 +1,4 @@
+
 <!--
 look at all pictures uploaded on website
 ability to click on a caption to go to picture and see tags, etc with options to add tags and stuff
@@ -10,13 +11,16 @@ ability to click on a caption to go to picture and see tags, etc with options to
 <p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
 <p> <a href='/'>Home</a> </p>
 
+<!-- photo[i]
+-->
 
 {% if allphotos %}
-<h2>Here are your photos</h2>
+<h2>Here are all the photos</h2>
     <ul>
     {% for photo in allphotos %}
-        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:50%; height:50%"/>
+        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:20%; height:20%"/>
+        <p>{{ photo[1] }}</p>
+        <p>{{ photo[2] }}</p>
     {% endfor %}
     </ul>
 {% endif %}
-
