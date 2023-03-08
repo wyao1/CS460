@@ -216,6 +216,9 @@ def picturedetail(photo):
 	return  render_template('picturedetail.html', name=flask_login.current_user.id, photo = photo , base64=base64)
 
 
+#make def that gets photo data????
+
+
 #default page
 @app.route("/", methods=['GET'])
 def hello():
