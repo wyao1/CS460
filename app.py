@@ -213,7 +213,7 @@ def browsepictures():
 #picture details
 @app.route('/picturedetail/<photo>', methods=['GET','POST']) 
 def picturedetail(photo):
-	return  render_template('picturedetail.html', name=flask_login.current_user.id, photo = photo)
+	return  render_template('picturedetail.html', name=flask_login.current_user.id, photo = photo , base64=base64)
 
 
 #default page
