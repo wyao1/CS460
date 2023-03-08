@@ -23,9 +23,9 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'cs460'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'wy#3HACHI251974'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
-app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['MYSQL_DATABASE_HOST'] = 'localhost' 
 mysql.init_app(app)
 
 #begin code used for login
@@ -80,12 +80,14 @@ def new_page_function():
 def login():
 	if flask.request.method == 'GET':
 		return '''
-			   <form action='login' method='POST'>
+			   	<h1> LOG IN </h1>
+      			<form action='login' method='POST'>
 				<input type='text' name='email' id='email' placeholder='email'></input>
 				<input type='password' name='password' id='password' placeholder='password'></input>
 				<input type='submit' name='submit'></input>
 			   </form></br>
-		   <a href='/'>Home</a>
+				 or <a href='/register'>make an account</a>
+		   <p><a href='/'>Home</a></p>
 			   '''
 	#The request method is POST (page is recieving data)
 	email = flask.request.form['email']
@@ -121,24 +123,31 @@ def register():
 @app.route("/register", methods=['POST'])
 def register_user():
 	try:
-		email=request.form.get('email')
-		password=request.form.get('password')
+		firstname = request.form.get('firstname')
+		lastname = request.form.get('lastname')
+		DOB = request.form.get('DOB')
+		hometown = request.form.get('hometown')
+		gender = request.form.get('gender')
+		inputemail = request.form.get('email')
+		password = request.form.get('password')
+
 	except:
 		print("couldn't find all tokens") #this prints to shell, end users will not see this (all print statements go to shell)
 		return flask.redirect(flask.url_for('register'))
 	cursor = conn.cursor()
-	test =  isEmailUnique(email)
+	test =  isEmailUnique(inputemail)
+	
 	if test:
-		print(cursor.execute("INSERT INTO Users (email, password) VALUES ('{0}', '{1}')".format(email, password)))
+		print(cursor.execute("INSERT INTO Users (email, password, firstName, lastName, hometown, gender, DOB) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}')".format(inputemail, password, firstname, lastname, hometown, gender, DOB)))
 		conn.commit()
 		#log user in
 		user = User()
-		user.id = email
+		user.id = inputemail
 		flask_login.login_user(user)
-		return render_template('hello.html', name=email, message='Account Created!')
+		return render_template('hello.html', name = inputemail, message='Account Created!')
 	else:
 		print("couldn't find all tokens")
-		return flask.redirect(flask.url_for('register'))
+		return "<a href='/register'>Try again, email already in use</a>"
 
 def getUsersPhotos(uid):
 	cursor = conn.cursor()
@@ -163,7 +172,7 @@ def isEmailUnique(email):
 @app.route('/profile')
 @flask_login.login_required
 def protected():
-	return render_template('hello.html', name=flask_login.current_user.id, message="Here's your profile")
+	return render_template('profile.html', name=flask_login.current_user.id, message="Here's your profile")
 
 #begin photo uploading code
 # photos uploaded using base64 encoding so they can be directly embeded in HTML
@@ -192,7 +201,7 @@ def upload_file():
 #default page
 @app.route("/", methods=['GET'])
 def hello():
-	return render_template('hello.html', message='Welecome to Photoshare')
+	return render_template('hello.html', message='Welcome to Photoshare')
 
 
 if __name__ == "__main__":
