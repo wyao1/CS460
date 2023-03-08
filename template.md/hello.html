@@ -19,7 +19,14 @@
     </ul>
 {% endif %}
 
-
+<!--
+{% if TopUsers %}
+  <h3>Top 10 Users</h3>
+    {% for user in TopUsers%}
+        <li>[{{user[0]}}] {{user[1]}} {{user[2]}} </li>
+    {% endfor %}
+{% endif %}
+-->
 
 {% if message is none %}
   <p>You should <a href='/login'>login!</a></p>
