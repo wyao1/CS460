@@ -273,18 +273,7 @@ def getpicturedetail(photo):
 
 	numlikes = NumberofLikes(photo)
 
-	#gets tags
-	tags = getTagsofPicture(photo_details[2])
-	print("this is the picturedetail tags:")
-	print(tags)
-	
-	tag_list = []
-	for tag in tags:
-		tag_list.append(tag[0])
-	print("this is printing tag list next WOW")
-	print(tag_list)
-
-	return photo_details + album_title + name + numlikes + (photo_details[2], tag_list)
+	return photo_details + album_title + name + numlikes
 
 
 #picture details
@@ -314,11 +303,24 @@ def mypictures():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
 	return render_template('browsepictures.html', photos = getUsersPhotos(uid), base64=base64)
 
+
+
+
+
 @app.route('/myalbums', methods=['GET', 'POST'])
 @flask_login.login_required
 def myalbums():
     uid = getUserIdFromEmail(flask_login.current_user.id)
-    return render_template('browsealbums.html', albums=getUsersAlbums(uid), base64=base64)
+    return render_template('browsealbums.html', myalbums=getUsersAlbums(uid), base64=base64)
+
+@app.route('/browsealbums', methods=['GET', 'POST'])
+@flask_login.login_required
+def browsealbums():
+    uid = getUserIdFromEmail(flask_login.current_user.id)
+    return render_template('browsealbums.html', allalbums=getUsersAlbums(uid), base64=base64)
+
+
+
 
 
 
@@ -358,7 +360,25 @@ def getUsersAlbums(uid):
 	cursor.execute("SELECT * FROM Albums WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 
+def getAllAlbums():
+	cursor = conn.cursor()
+	cursor.execute("SELECT album_id FROM Albums")
+	return cursor.fetchall()
 
+#gets a list of tuples of albumID and first picture
+def getFirstPic():
+    cursor = conn.cursor()
+    cursor.execute("SELECT album_id FROM Albums")
+    albums = cursor.fetchall()
+    album_picture_list = []
+    for album in albums:
+        album_id = album[0]
+        cursor.execute("SELECT picture_id FROM Pictures WHERE album_id={album_id} ORDER BY date_uploaded ASC LIMIT 1")
+        result = cursor.fetchone()
+        if result:
+            picture_id = result[0]
+            album_picture_list.append((album_id, picture_id))
+    return album_picture_list
 
 #returns the number of likes on a picture
 def NumberofLikes(picture_id):
