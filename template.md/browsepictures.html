@@ -4,10 +4,19 @@ ability to click on a caption to go to picture and see tags, etc with options to
 -->
 
 <!doctype html>
-<h1> Browse Pictures! </h1>
 
-<p> <strong> <a href='/login'>Log In!</a> </strong> </p>
-<p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+{% if allphotos %}
+    <h1> Browse Pictures! </h1>
+{% elif photos %}
+    <h1> Your Pictures! </h1>
+{% endif %}
+
+{% if name == -1 %}
+    <p> <strong> <a href='/login'>Log In!</a> </strong> </p>
+{%else%}
+    <p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+{% endif %}
+
 <p> <a href='/'>Home</a> </p>
 
 <!-- photo[i]
@@ -17,8 +26,16 @@ ability to click on a caption to go to picture and see tags, etc with options to
 <h2>Here are all the photos</h2>
     <ul>
     {% for photo in allphotos %}
-        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:20%; height:20%"/>
-        <a href="{{ url_for('picturedetail', photo=photo[1]) }}"> {{ photo[2] }}</a>
+        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:20%; height:20%"/> <br>
+        <a href="{{ url_for('picturedetail', photo=photo[1]) }}"> {{ photo[2] }}</a><br>
     {% endfor %}
     </ul>
-{% endif %}b 
+{% elif photos %}
+<h2>Here are your photos!</h2>
+    <ul>
+    {% for photo in photos %}
+        <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:20%; height:20%"/> <br>
+        <a href="{{ url_for('picturedetail', photo=photo[1]) }}"> {{ photo[2] }}</a><br>
+    {% endfor %}
+    </ul>
+{% endif %}
