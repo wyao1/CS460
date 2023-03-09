@@ -24,7 +24,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'CS460'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'wy#3HACHI251974'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost' 
 mysql.init_app(app)
@@ -168,6 +168,7 @@ def isEmailUnique(email):
 		return False
 	else:
 		return True
+	
 #end login code
 
 @app.route('/profile')
@@ -234,7 +235,11 @@ def deletepicture(uid, picture_id):
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
 def browsepictures():
-	return  render_template('browsepictures.html', name=flask_login.current_user.id, allphotos=getallpictures(), base64=base64)
+	if flask_login.current_user.is_authenticated:   		
+		name = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		name = -1
+	return  render_template('browsepictures.html', name = name, allphotos=getallpictures(), base64=base64)
 #end photo uploading code
 
 def getpicturedetail(photo):
@@ -264,7 +269,11 @@ def getpicturedetail(photo):
 #picture details
 @app.route('/picturedetail/<photo>', methods=['GET','POST']) 
 def picturedetail(photo):
-    return render_template('picturedetail.html', name=getUserIdFromEmail(flask_login.current_user.id), photo=getpicturedetail(photo), base64=base64)
+	if flask_login.current_user.is_authenticated:   		
+		name = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		name = -1
+	return render_template('picturedetail.html', name=name, photo=getpicturedetail(photo), base64=base64)
 
 #liking a photo
 @app.route('/like/<photo>', methods=['GET','POST']) 
@@ -278,6 +287,17 @@ def like(photo):
 		cursor.execute("INSERT INTO Likes (picture_id, user_id) VALUES ('{0}', '{1}')".format(photo, uid))
 		return render_template('picturedetail.html', message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
 
+@app.route('/mypictures', methods=['GET','POST']) 
+@flask_login.login_required
+def mypictures():
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	return render_template('browsepictures.html', photos = getUsersPhotos(uid), base64=base64)
+
+@app.route('/myalbums', methods=['GET','POST']) 
+@flask_login.login_required
+def myalbums():
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	return render_template('browsealbums.html', albums = getUsersAlbums(uid), base64=base64)
 
 
 def isAlbumUnique(title, uid):
@@ -311,7 +331,10 @@ def FindAlbumID(album, uid):
 	cursor.execute("SELECT album_id FROM Albums WHERE user_id = '{0}' AND title = '{1}'".format(uid, album))
 	return cursor.fetchone()
 	
-
+def getUsersAlbums(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT * FROM Albums WHERE user_id = '{0}'".format(uid))
+	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 
 #returns the number of likes on a picture
 def NumberofLikes(picture_id):
@@ -331,7 +354,7 @@ def isTagUnique(tag, picture_id):
 
 def addTag(listoftags, picture_id):
 	for tag in list(set(listoftags)):
-		if t != "" and isTagUnique(tag, picture_id):	
+		if tag != "" and isTagUnique(tag, picture_id):	
 			cursor = conn.cursor()
 			cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES ('{0}', '{1}')".format(tag, picture_id))
 			conn.commit()
