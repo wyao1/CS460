@@ -24,7 +24,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'wy#3HACHI251974'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'CS460'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost' 
 mysql.init_app(app)
@@ -215,6 +215,21 @@ def getallpictures():
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 
 
+#delete picture
+@app.route('/deletepicture/<uid>/<picture_id>', methods=['GET', 'POST'])
+def deletepicture(uid, picture_id):
+	tags = getUserTags(uid)
+	for tag in tags:
+		deleteTags(str(tag[0]), picture_id)
+	cursor = conn.cursor()
+	cursor.execute("DELETE FROM Likes WHERE photo_id='{0}'".format(photo_id))
+	conn.commit()
+	cursor.execute("DELETE FROM Comments WHERE photo_id='{0}'".format(photo_id))
+	conn.commit()
+	cursor.execute("DELETE FROM Photos WHERE user_id = '{0}' AND photo_id='{1}'".format(uid, photo_id))
+	conn.commit()
+
+
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
 def browsepictures():
@@ -248,8 +263,9 @@ def getpicturedetail(photo):
 #picture details
 @app.route('/picturedetail/<photo>', methods=['GET','POST']) 
 def picturedetail(photo):
-    return render_template('picturedetail.html', photo=getpicturedetail(photo), base64=base64)
+    return render_template('picturedetail.html', name=getUserIdFromEmail(flask_login.current_user.id), photo=getpicturedetail(photo), base64=base64)
 
+#liking a photo
 @app.route('/like/<photo>', methods=['GET','POST']) 
 @flask_login.login_required
 def like(photo):
@@ -260,6 +276,8 @@ def like(photo):
 		cursor = conn.cursor()
 		cursor.execute("INSERT INTO Likes (picture_id, user_id) VALUES ('{0}', '{1}')".format(photo, uid))
 		return render_template('picturedetail.html', message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
+
+
 
 def isAlbumUnique(title, uid):
 	cursor = conn.cursor()
@@ -293,11 +311,40 @@ def FindAlbumID(album, uid):
 	return cursor.fetchone()
 	
 
+
 #returns the number of likes on a picture
 def NumberofLikes(picture_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT COUNT(picture_id) FROM Likes WHERE picture_id = '{0}'".format(picture_id))
 	return cursor.fetchone()
+
+
+
+#checks if tag already exists
+def isTagUnique(tag, picture_id):
+	cursor = conn.cursor()
+	if cursor.execute("SELECT * FROM Tags WHERE singleword = '{0}' And user_id = '{1}'".format(tag, uid)):
+		return False
+	else:
+		return True
+
+def addTag(listoftags, picture_id):
+	for tag in list(set(listoftags)):
+		if t != "" and isTagUnique(tag, picture_id):	
+			cursor = conn.cursor()
+			cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES ('{0}', '{1}')".format(tag, picture_id))
+			conn.commit()
+	
+def getUserTags(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT T.word FROM Tags T, Photos P WHERE P.user_id='{0}' AND T.photo_id = P.photo_id".format(uid))
+	tags = cursor.fetchall()
+	return list(set(tags))
+
+def deleteTags(tag, picture_id):
+	cursor = conn.cursor()
+	cursor.execute("DELETE FROM Tags WHERE word = '{0}' AND photo_id='{1}'".format(tag, picture_id))
+	conn.commit()
 
 
 #default page
