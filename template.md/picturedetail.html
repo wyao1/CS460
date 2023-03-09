@@ -7,5 +7,12 @@
 <p> <a href='/'>Home</a> </p>
 
 
+<!--
+    imgdata, user_id, picture_id, caption, albumID, album_title,firstname, lastname  tags
+-->
+
 <h1>Picture Detail</h1>
 <img src='data:image/jpg;base64,{{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:40%; height:40%"/>
+<h1>Caption: {{ photo[3] }}</h1>
+<h1>Taken By: {{ photo[6]}} {{photo[7]}}</h1>
+<h1>From Album: {{ photo[5] }}</h1>
