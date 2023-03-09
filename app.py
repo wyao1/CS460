@@ -203,6 +203,10 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Pictures (imgdata, user_id, caption, album) VALUES (%s, %s, %s, %s )''', (photo_data, uid, caption, albumID))
 		conn.commit()
+
+		tags=str(request.form.get('tags')).lower().split(" ")
+		addTag(tags, cursor.lastrowid)
+
 		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
@@ -214,7 +218,6 @@ def getallpictures():
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
-
 
 #delete picture
 @app.route('/deletepicture/<uid>/<picture_id>', methods=['GET', 'POST'])
@@ -230,7 +233,6 @@ def deletepicture(uid, picture_id):
 	cursor.execute("DELETE FROM Pictures WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id))
 	conn.commit()
 	return render_template('hello.html', name=flask_login.current_user.id, message='Photo deleted!', photos=getUsersPhotos(uid), base64=base64)
-
 
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
@@ -293,11 +295,12 @@ def mypictures():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
 	return render_template('browsepictures.html', photos = getUsersPhotos(uid), base64=base64)
 
-@app.route('/myalbums', methods=['GET','POST']) 
+@app.route('/myalbums', methods=['GET', 'POST'])
 @flask_login.login_required
 def myalbums():
-	uid = getUserIdFromEmail(flask_login.current_user.id)
-	return render_template('browsealbums.html', albums = getUsersAlbums(uid), base64=base64)
+    uid = getUserIdFromEmail(flask_login.current_user.id)
+    return render_template('browsealbums.html', albums=getUsersAlbums(uid), base64=base64)
+
 
 
 def isAlbumUnique(title, uid):
@@ -336,6 +339,8 @@ def getUsersAlbums(uid):
 	cursor.execute("SELECT * FROM Albums WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 
+
+
 #returns the number of likes on a picture
 def NumberofLikes(picture_id):
 	cursor = conn.cursor()
@@ -347,17 +352,17 @@ def NumberofLikes(picture_id):
 #checks if tag already exists
 def isTagUnique(tag, picture_id):
 	cursor = conn.cursor()
-	if cursor.execute("SELECT * FROM Tags WHERE singleword = '{0}' And user_id = '{1}'".format(tag, uid)):
+	if cursor.execute("SELECT * FROM Tags WHERE singleword = '{0}' And picture_id = '{1}'".format(tag, picture_id)):
 		return False
 	else:
 		return True
 
 def addTag(listoftags, picture_id):
-	for tag in list(set(listoftags)):
-		if tag != "" and isTagUnique(tag, picture_id):	
-			cursor = conn.cursor()
-			cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES ('{0}', '{1}')".format(tag, picture_id))
-			conn.commit()
+    for tag in listoftags:
+        if tag.strip() != "" and isTagUnique(tag, picture_id):
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES (%s, %s)", (tag.strip(), picture_id))
+            conn.commit()
 	
 def getUserTags(uid):
 	cursor = conn.cursor()
@@ -369,6 +374,7 @@ def deleteTags(tag, picture_id):
 	cursor = conn.cursor()
 	cursor.execute("DELETE FROM Tags WHERE word = '{0}' AND picture_id='{1}'".format(tag, picture_id))
 	conn.commit()
+
 
 
 #default page
