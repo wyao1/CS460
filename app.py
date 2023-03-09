@@ -13,6 +13,7 @@ import flask
 from flask import Flask, Response, request, render_template, redirect, url_for
 from flaskext.mysql import MySQL
 import flask_login
+import datetime
 
 #for image uploading
 import os, base64
@@ -187,9 +188,19 @@ def upload_file():
 		uid = getUserIdFromEmail(flask_login.current_user.id)
 		imgfile = request.files['photo']
 		caption = request.form.get('caption')
+
+		current_datetime = str(datetime.datetime.now().year) + "-" + str(datetime.datetime.now().month) + "-" + str(datetime.datetime.now().day)
+		print(current_datetime)
+
+		album = request.form.get ('album')
+		if(isAlbumUnique(album, uid)): #true = creating new album
+			CreateAlbum(album, current_datetime, uid)
+		albumID = FindAlbumID(album, uid)
+		print("ALBUM ID IS " + str(albumID))
+
 		photo_data =imgfile.read()
 		cursor = conn.cursor()
-		cursor.execute('''INSERT INTO Pictures (imgdata, user_id, caption) VALUES (%s, %s, %s )''', (photo_data, uid, caption))
+		cursor.execute('''INSERT INTO Pictures (imgdata, user_id, caption, album) VALUES (%s, %s, %s, %s )''', (photo_data, uid, caption, albumID))
 		conn.commit()
 		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
@@ -210,15 +221,62 @@ def browsepictures():
 	return  render_template('browsepictures.html', name=flask_login.current_user.id, allphotos=getallpictures(), base64=base64)
 #end photo uploading code
 
+def getpicturedetail(photo):
+	cursor = conn.cursor()
+	cursor.execute("SELECT imgdata, user_id, picture_id, caption, album FROM pictures WHERE picture_id = '{0}'".format(photo))
+	photo_details = cursor.fetchone()
+	print(photo)
+	print(photo_details[4])
+
+	#gets album name
+	cursor.execute("SELECT title FROM Albums WHERE album_id = '{0}'".format(photo_details[4]))
+	album_title = cursor.fetchone()
+
+	cursor.execute("SELECT firstname, lastname FROM Users WHERE user_id = '{0}'".format(photo_details[1]))
+	name = cursor.fetchone()
+
+	cursor.execute("SELECT T.singleword FROM Tags T, Pictures P WHERE P.user_id='{0}' AND T.picture_id = P.picture_id".format(photo_details[1]))
+	tags = cursor.fetchall()
+	print(tags)
+	return photo_details + album_title + name + tags
+
+
 #picture details
 @app.route('/picturedetail/<photo>', methods=['GET','POST']) 
 def picturedetail(photo):
-    cursor = conn.cursor()
-    cursor.execute("SELECT imgdata, user_id, picture_id, caption, album FROM pictures WHERE picture_id = '{0}'".format(photo))
-    photo_details = cursor.fetchone()
-    print("HERE" + photo_details[3])
-    return render_template('picturedetail.html', photo=photo_details, base64=base64)
+    return render_template('picturedetail.html', photo=getpicturedetail(photo), base64=base64)
 
+def isAlbumUnique(title, uid):
+	cursor = conn.cursor()
+	if cursor.execute("SELECT * FROM Albums WHERE title = '{0}' And user_id = '{1}'".format(title, uid)):
+		return False
+	else:
+		return True
+
+#gets lift of Albums, to be used for upload, etc
+def ListAlbums(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT title, date_creation, album_id FROM Albums WHERE user_id = '{0}'".format(uid))
+	return cursor.fetchall()
+
+def CreateAlbum(title, date_creation, uid):
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Albums (title, date_created, user_id) VALUES ('{0}', '{1}', '{2}')".format(title, date_creation, uid))
+	conn.commit()
+
+def CheckAlbumExist(uid):
+	#if there exists an album for UID then true
+	cursor = conn.cursor()
+	if cursor.execute("SELECT * FROM Albums WHERE user_id = '{0}'".format(uid)):
+		return True
+	else:
+		return False
+
+def FindAlbumID(album, uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT album_id FROM Albums WHERE user_id = '{0}' AND title = '{1}'".format(uid, album))
+	return cursor.fetchone()
+	
 
 #default page
 @app.route("/", methods=['GET'])
