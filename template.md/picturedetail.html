@@ -29,4 +29,15 @@
   <h4>{{message}}!</h4>
 {% endif %}
 
-<h1> <button><a href="{{ url_for('like', photo=photo[2]) }}">Like!</a></button> </h1>
+<!--
+  if this is the users picture, show delete button
+  else, show like button
+-->
+{% if name %}
+  {% if name == photo[1] %}
+    <h1> <button><a href="{{ url_for('deletepicture', uid=name, picture_id=photo[2]) }}">delete</a></button> </h1>
+  {% else %}
+    <h1> <button><a href="{{ url_for('like', photo=photo[2]) }}">Like!</a></button> </h1>
+  {% endif %}
+{% endif %}
+
