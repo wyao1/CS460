@@ -232,19 +232,34 @@ def getpicturedetail(photo):
 	cursor.execute("SELECT title FROM Albums WHERE album_id = '{0}'".format(photo_details[4]))
 	album_title = cursor.fetchone()
 
+	#gets name
 	cursor.execute("SELECT firstname, lastname FROM Users WHERE user_id = '{0}'".format(photo_details[1]))
 	name = cursor.fetchone()
 
+	numlikes = NumberofLikes(photo)
+
+	#gets tags
 	cursor.execute("SELECT T.singleword FROM Tags T, Pictures P WHERE P.user_id='{0}' AND T.picture_id = P.picture_id".format(photo_details[1]))
 	tags = cursor.fetchall()
 	print(tags)
-	return photo_details + album_title + name + tags
+	return photo_details + album_title + name + numlikes + tags
 
 
 #picture details
 @app.route('/picturedetail/<photo>', methods=['GET','POST']) 
 def picturedetail(photo):
     return render_template('picturedetail.html', photo=getpicturedetail(photo), base64=base64)
+
+@app.route('/like/<photo>', methods=['GET','POST']) 
+@flask_login.login_required
+def like(photo):
+	print("PHOTO ID IS")
+	print(photo)
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	if request.method == 'GET':
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO Likes (picture_id, user_id) VALUES ('{0}', '{1}')".format(photo, uid))
+		return render_template('picturedetail.html', message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
 
 def isAlbumUnique(title, uid):
 	cursor = conn.cursor()
@@ -277,6 +292,13 @@ def FindAlbumID(album, uid):
 	cursor.execute("SELECT album_id FROM Albums WHERE user_id = '{0}' AND title = '{1}'".format(uid, album))
 	return cursor.fetchone()
 	
+
+#returns the number of likes on a picture
+def NumberofLikes(picture_id):
+	cursor = conn.cursor()
+	cursor.execute("SELECT COUNT(picture_id) FROM Likes WHERE picture_id = '{0}'".format(picture_id))
+	return cursor.fetchone()
+
 
 #default page
 @app.route("/", methods=['GET'])
