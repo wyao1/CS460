@@ -197,15 +197,29 @@ def upload_file():
 		if(isAlbumUnique(album, uid)): #true = creating new album
 			CreateAlbum(album, current_datetime, uid)
 		albumID = FindAlbumID(album, uid)
-		print("ALBUM ID IS " + str(albumID))
 
 		photo_data =imgfile.read()
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Pictures (imgdata, user_id, caption, album) VALUES (%s, %s, %s, %s )''', (photo_data, uid, caption, albumID))
 		conn.commit()
+		picture_id = cursor.lastrowid
 
 		tags=str(request.form.get('tags')).lower().split(" ")
-		addTag(tags, cursor.lastrowid)
+
+		#delete after
+		print("in upload, the tags are")
+		for tag in tags:
+			print(tag)
+		
+		addTag(tags, picture_id)
+
+		#checking if inserted correctly
+		cursor.execute("SELECT singleword FROM Tags WHERE picture_id = '{0}'".format(picture_id))
+		conn.commit()
+		tags2 = cursor.fetchall()
+		print("testing if tags are stored")
+		print(tags2)
+		
 
 		return render_template('hello.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
@@ -248,8 +262,6 @@ def getpicturedetail(photo):
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, user_id, picture_id, caption, album FROM pictures WHERE picture_id = '{0}'".format(photo))
 	photo_details = cursor.fetchone()
-	print(photo)
-	print(photo_details[4])
 
 	#gets album name
 	cursor.execute("SELECT title FROM Albums WHERE album_id = '{0}'".format(photo_details[4]))
@@ -262,10 +274,17 @@ def getpicturedetail(photo):
 	numlikes = NumberofLikes(photo)
 
 	#gets tags
-	cursor.execute("SELECT T.singleword FROM Tags T, Pictures P WHERE P.user_id='{0}' AND T.picture_id = P.picture_id".format(photo_details[1]))
-	tags = cursor.fetchall()
+	tags = getTagsofPicture(photo_details[2])
+	print("this is the picturedetail tags:")
 	print(tags)
-	return photo_details + album_title + name + numlikes + tags
+	
+	tag_list = []
+	for tag in tags:
+		tag_list.append(tag[0])
+	print("this is printing tag list next WOW")
+	print(tag_list)
+
+	return photo_details + album_title + name + numlikes + (photo_details[2], tag_list)
 
 
 #picture details
@@ -275,7 +294,7 @@ def picturedetail(photo):
 		name = getUserIdFromEmail(flask_login.current_user.id)
 	else:
 		name = -1
-	return render_template('picturedetail.html', name=name, photo=getpicturedetail(photo), base64=base64)
+	return render_template('picturedetail.html', tags = getTagsofPicture(photo), name=name, photo=getpicturedetail(photo), base64=base64)
 
 #liking a photo
 @app.route('/like/<photo>', methods=['GET','POST']) 
@@ -352,18 +371,31 @@ def NumberofLikes(picture_id):
 #checks if tag already exists
 def isTagUnique(tag, picture_id):
 	cursor = conn.cursor()
-	if cursor.execute("SELECT * FROM Tags WHERE singleword = '{0}' And picture_id = '{1}'".format(tag, picture_id)):
+	cursor.execute("SELECT * FROM Tags WHERE singleword = '{0}' And picture_id = '{1}'".format(tag, picture_id))
+	if cursor.fetchone():
 		return False
 	else:
 		return True
-
-def addTag(listoftags, picture_id):
-    for tag in listoftags:
-        if tag.strip() != "" and isTagUnique(tag, picture_id):
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES (%s, %s)", (tag.strip(), picture_id))
-            conn.commit()
 	
+def addTag(listoftags, picture_id):
+	for t in list(set(listoftags)):
+		if t != "" and isTagUnique(t, picture_id):
+			cursor = conn.cursor()
+			cursor.execute("INSERT INTO Tagged_Photos (word, photo_id) VALUES ('{0}', '{1}')".format(t, picture_id))
+			conn.commit()
+		   
+		
+
+def getTagsofPicture(picture_id):
+	cursor.execute("SELECT singleword FROM Tags WHERE picture_id = '{0}'".format(picture_id))
+	conn.commit()
+	tags = cursor.fetchall()
+
+	print("this is the GETTAGSOFPICTURE FUNCITON")
+	print(tags)
+
+	return tags
+
 def getUserTags(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT T.singleword FROM Tags T, Pictures P WHERE P.user_id='{0}' AND T.picture_id = P.picture_id".format(uid))
