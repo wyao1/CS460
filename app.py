@@ -222,12 +222,13 @@ def deletepicture(uid, picture_id):
 	for tag in tags:
 		deleteTags(str(tag[0]), picture_id)
 	cursor = conn.cursor()
-	cursor.execute("DELETE FROM Likes WHERE photo_id='{0}'".format(photo_id))
+	cursor.execute("DELETE FROM Likes WHERE picture_id='{0}'".format(picture_id))
 	conn.commit()
-	cursor.execute("DELETE FROM Comments WHERE photo_id='{0}'".format(photo_id))
+	cursor.execute("DELETE FROM Comments WHERE picture_id='{0}'".format(picture_id))
 	conn.commit()
-	cursor.execute("DELETE FROM Photos WHERE user_id = '{0}' AND photo_id='{1}'".format(uid, photo_id))
+	cursor.execute("DELETE FROM Pictures WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id))
 	conn.commit()
+	return render_template('hello.html', name=flask_login.current_user.id, message='Photo deleted!', photos=getUsersPhotos(uid), base64=base64)
 
 
 #browse pictures
@@ -337,13 +338,13 @@ def addTag(listoftags, picture_id):
 	
 def getUserTags(uid):
 	cursor = conn.cursor()
-	cursor.execute("SELECT T.word FROM Tags T, Photos P WHERE P.user_id='{0}' AND T.photo_id = P.photo_id".format(uid))
+	cursor.execute("SELECT T.singleword FROM Tags T, Pictures P WHERE P.user_id='{0}' AND T.picture_id = P.picture_id".format(uid))
 	tags = cursor.fetchall()
 	return list(set(tags))
 
 def deleteTags(tag, picture_id):
 	cursor = conn.cursor()
-	cursor.execute("DELETE FROM Tags WHERE word = '{0}' AND photo_id='{1}'".format(tag, picture_id))
+	cursor.execute("DELETE FROM Tags WHERE word = '{0}' AND picture_id='{1}'".format(tag, picture_id))
 	conn.commit()
 
 
