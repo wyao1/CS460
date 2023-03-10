@@ -1,1 +1,47 @@
-<h1>here</h1>
+<!--
+look at all albums either from the website database or owner
+ability to click on a caption to go to picture and see tags, etc with options to add tags and stuff
+-->
+
+<!doctype html>
+
+{% if allalbums %}
+    <h1> Browse Albums! </h1>
+{% elif youralbums%}
+    <h1> Your Albums! </h1>
+{% endif %}
+
+{% if name == -1 %}
+    <p> <strong> <a href='/login'>Log In!</a> </strong> </p>
+{%else%}
+    <p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+{% endif %}
+
+<p> <a href='/'>Home</a> </p>
+
+<!--allalbums = (album_ID, title, picture_ID, imgdata)
+-->
+
+
+
+{% if allalbums %}
+<h2>Here are all the albums</h2>
+    <ul>
+    {% for album in allalbums %}
+        <li>
+            <img src='data:image/jpg;base64, {{ base64.b64encode(album[3]).decode("ascii") }}'  style="width:20%; height:20%"/> <br>
+            <h1><a href="{{ url_for('viewalbum', albumid=album[0], title=album[1]) }}"> {{ album[1] }}</a><br></h1>
+        </li>
+    {% endfor %}
+    </ul>
+{% elif myalbums %}
+<h2>Here are your albums!</h2>
+<ul>
+    {% for album in myalbums %}
+        <li>
+            <img src='data:image/jpg;base64, {{ base64.b64encode(album[3]).decode("ascii") }}'  style="width:20%; height:20%"/> <br>
+            <h1><a href="{{ url_for('viewalbum', albumid=album[0], title=album[1]) }}"> {{ album[1] }}</a><br></h1>
+        </li>
+    {% endfor %}
+    </ul>
+{% endif %}

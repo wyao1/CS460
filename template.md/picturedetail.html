@@ -24,15 +24,20 @@
 <img src='data:image/jpg;base64,{{ base64.b64encode(photo[0]).decode("ascii") }}'  style="width:40%; height:40%"/>
 <h1>Caption: {{ photo[3] }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Taken By: {{ photo[6]}} {{photo[7]}}</h1>
 <h1>From Album: {{ photo[5] }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Number of Likes: {{ photo[8] }}</h1>
+
+
 {% if tags %}
-  <h2>Tags:</h2>
+<h2>Tags:</h2>
   <ul>
     {% for sing_tag in tags %}
-      <li>{{ sing_tag }}</li>
+      <li>{{ sing_tag[0] }}</li>
     {% endfor %}
   </ul>
-{% endif %}
+{% else %}
+<h2>Tags:</h2> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; no tags
 
+
+{% endif %}
 {% if message %}
   <h4>{{message}}!</h4>
 {% endif %}
