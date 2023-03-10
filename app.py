@@ -544,47 +544,12 @@ def hello():
 		uid = -1
 	return render_template('hello.html', uid = uid, message='Welcome to Photoshare', TopUsers=getContribution())
 
-def YouMayAlsoLike(uid):
-    cursor = conn.cursor()
-    
-    # Get the top 5 most common tags for the user's photos
-    commontags_query = "SELECT T.singleword AS word FROM Tags T, Pictures P WHERE T.picture_id = P.picture_id AND P.user_id = %s GROUP BY T.singleword ORDER BY COUNT(T.singleword) DESC LIMIT 5"
-    cursor.execute(commontags_query, (uid,))
-    commontags = [row[0] for row in cursor.fetchall()]
-
-    # Get the IDs of photos that have at least one common tag with the user's photos, and count how many common tags they have
-    similarphotos_query = "SELECT P.picture_id, COUNT(T2.singleword) AS common_tags_count \
-                           FROM Pictures P, Tags T1, Tags T2 \
-                           WHERE P.picture_id = T1.picture_id AND T1.singleword IN %s AND T1.picture_id != T2.picture_id AND T2.singleword IN %s \
-                           GROUP BY P.picture_id \
-                           ORDER BY common_tags_count DESC, P.picture_id ASC \
-                           LIMIT 10"
-    cursor.execute(similarphotos_query, (commontags, commontags))
-    similarphotos = cursor.fetchall()
-
-    # Get photo data and additional info for each similar photo
-    photos = []
-    for picture_id, common_tags_count in similarphotos:
-        cursor.execute("SELECT P.caption, P.imgdata, U.firstname, U.lastname \
-                        FROM Pictures P, Users U \
-                        WHERE P.picture_id = %s AND P.user_id = U.user_id", (picture_id,))
-        photo_data = cursor.fetchone()
-
-        cursor.execute("SELECT T.singleword FROM Tags T WHERE T.picture_id = %s", (picture_id,))
-        photo_tags = [row[0] for row in cursor.fetchall()]
-
-        comments = GetComments(picture_id)
-        likes = NumberofLikes(picture_id)
-
-        photos.append([picture_id, common_tags_count, photo_data[0], photo_data[1], photo_data[2], photo_data[3], photo_tags, comments, likes])
-
-    return photos
 
 @app.route('/recommendphotos', methods=['GET', 'POST'])
 @flask_login.login_required
 def recommendPhotos():
 	uid=getUserIdFromEmail(flask_login.current_user.id)
-	return render_template('recommendPhotos.html', youmaylike = YouMayAlsoLike(uid))
+	return render_template('recommendPhotos.html')
 
 
 
