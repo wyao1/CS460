@@ -239,7 +239,7 @@ def getallpicturesfromalbum(album_id):
     return cursor.fetchall()
 
 #delete picture
-@app.route('/deletepicture/<uid>/<picture_id>', methods=['GET', 'POST'])
+@app.route('/deletepicture/<uid>/<picture_id>')
 def deletepicture(uid, picture_id):
 	tags = getUserTags(uid)
 	for tag in tags:
@@ -254,7 +254,7 @@ def deletepicture(uid, picture_id):
 	return render_template('hello.html', name=flask_login.current_user.id, message='Photo deleted!', base64=base64)
 
 #browse pictures
-@app.route('/browsepictures', methods=['GET', 'POST'])
+@app.route('/browsepictures')
 def browsepictures():
 	if flask_login.current_user.is_authenticated:   		
 		name = getUserIdFromEmail(flask_login.current_user.id)
@@ -277,7 +277,7 @@ def comment(picture_id):
 			print(comment)
 	return render_template('picturedetail.html', comments = GetComments(picture_id), tags = getTagsofPicture(picture_id), name=name, photo=getpicturedetail(picture_id), base64=base64)
 
-
+#gets picture details except comments and tags
 def getpicturedetail(photo):
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, user_id, picture_id, caption, album FROM pictures WHERE picture_id = '{0}'".format(photo))
@@ -297,7 +297,7 @@ def getpicturedetail(photo):
 
 
 #picture details
-@app.route('/picturedetail/<photo>', methods=['GET','POST']) 
+@app.route('/picturedetail/<photo>') 
 def picturedetail(photo):
 	if flask_login.current_user.is_authenticated:   		
 		name = getUserIdFromEmail(flask_login.current_user.id)
@@ -317,27 +317,27 @@ def like(photo):
 		cursor.execute("INSERT INTO Likes (picture_id, user_id) VALUES ('{0}', '{1}')".format(photo, uid))
 		return render_template('picturedetail.html',  comments = GetComments(photo), message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
 
-@app.route('/mypictures', methods=['GET','POST']) 
+@app.route('/mypictures') 
 @flask_login.login_required
 def mypictures():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
 	return render_template('browsepictures.html', photos = getUsersPhotos(uid), base64=base64)
 
 
-@app.route('/myalbums/<uid>', methods=['GET', 'POST'])
+@app.route('/myalbums/<uid>')
 @flask_login.login_required
 def myalbums(uid):
 	albums = getAllAlbumsofUser(uid)
 	return render_template('browsealbums.html', myalbums = getFirstPic(albums), base64=base64)
 
 
-@app.route('/browsealbums', methods=['GET', 'POST'])
+@app.route('/browsealbums')
 @flask_login.login_required
 def browsealbums():
     uid = getUserIdFromEmail(flask_login.current_user.id)
     return render_template('browsealbums.html', allalbums = getFirstPic(getAllAlbums()), base64=base64)
 
-@app.route('/viewalbum/<albumid>,<title>', methods=['GET', 'POST'])
+@app.route('/viewalbum/<albumid>,<title>')
 @flask_login.login_required
 def viewalbum(albumid,title):
 	if flask_login.current_user.is_authenticated:
@@ -347,22 +347,22 @@ def viewalbum(albumid,title):
 	pictures = getallpicturesfromalbum(albumid)
 	return render_template('viewalbum.html', albumid = albumid, pictures = pictures, title = title, uid = user_id, base64=base64)
 
-@app.route('/deletealbum,<uid>,<albumid>', methods=['GET', 'POST'])
-def deleteAlbum(uid,albumid):
-    print("DELETE ALBUM IS WORKING")
+#deletealbum also makes use of deletepicture
+@app.route('/deletealbum/<albumid>')
+def deletealbum(albumid):
+	print("THE ALBUM ID IS")
+	print(albumid)
     # Delete all pictures in the album
-    cursor = conn.cursor()
-    cursor.execute("SELECT picture_id FROM Pictures WHERE album_id = %s", (albumid,))
-    picture_ids = [r[0] for r in cursor.fetchall()]
-    for picture_id in picture_ids:
-        deletepicture(uid, picture_id)
-        
-    # Delete the album itself
-    cursor.execute("DELETE FROM Albums WHERE album_id = %s", (albumid,))
-    conn.commit()
-    return render_template('hello.html', name=flask_login.current_user.id, message='Album deleted!', base64=base64)
-
-
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT picture_id FROM Pictures WHERE album = %s", (albumid))
+	picture_ids = [r[0] for r in cursor.fetchall()]
+	for picture_id in picture_ids:
+		deletepicture(user_id, picture_id)
+		
+	cursor.execute("DELETE FROM Albums WHERE album_id = %s", (albumid))
+	conn.commit()
+	return render_template('hello.html', name=flask_login.current_user.id, message='Album deleted!', base64=base64)
 
 def isAlbumUnique(title, uid):
 	cursor = conn.cursor()
@@ -432,6 +432,14 @@ def NumberofLikes(picture_id):
 
 
 
+@app.route("/tags/<singleword>")
+@flask_login.login_required
+def tags(singleword):
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	pictures = getallpictureswithtag(str(singleword))
+	print("TAGS ROUTE")
+	return render_template('tag.html', pictures=pictures, singleword=singleword, base64=base64)
+
 #checks if tag already exists
 def isTagUnique(tag, picture_id):
 	cursor = conn.cursor()
@@ -445,10 +453,23 @@ def addTag(listoftags, picture_id):
 	for t in list(set(listoftags)):
 		if t != "" and isTagUnique(t, picture_id):
 			cursor = conn.cursor()
-			cursor.execute("INSERT INTO Tagged_Photos (word, picture_id) VALUES ('{0}', '{1}')".format(t, picture_id))
+			cursor.execute("INSERT INTO Tags (singleword, picture_id) VALUES ('{0}', '{1}')".format(t, picture_id))
 			conn.commit()
 		   
-		
+def getallpictureswithtag(singleword):
+    cursor = conn.cursor()
+    cursor.execute("SELECT picture_id FROM Tags WHERE singleword = '{0}'".format(singleword))
+    P = cursor.fetchall()
+    picture_ids = [(int(item[0])) for item in P]
+    pictures = []
+    for picture_id in picture_ids:
+        cursor.execute("SELECT imgdata FROM Pictures WHERE picture_id = '{0}'".format(picture_id))
+        R = cursor.fetchall()
+        C = [item[0] for item in R]
+        if C:
+            pictures.append((picture_id, C[0]))
+    return pictures
+
 
 def getTagsofPicture(picture_id):
 	cursor.execute("SELECT singleword FROM Tags WHERE picture_id = '{0}'".format(picture_id))
@@ -474,7 +495,7 @@ def deleteTags(tag, picture_id):
 
 def isCommentUnique(uid, picture_id):
 	cursor = conn.cursor()
-	if cursor.execute("SELECT * FROM Photos WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id)):
+	if cursor.execute("SELECT * FROM Pictures WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id)):
 		return False
 	else:
 		return True
@@ -499,11 +520,72 @@ def GetComments(picture_id):
 	commentlist = [[comment[0], comment[1], comment[2], comment[3]] for comment in cursor.fetchall()]
 	return commentlist
 
-
+def getContribution():
+    cursor = conn.cursor()
+    contribution = """
+        SELECT U.email, U.firstname, U.lastname, 
+        COUNT(DISTINCT P.picture_id) + COUNT(DISTINCT C.comment_id) as contribution
+        FROM Users U
+        LEFT JOIN Pictures P ON P.user_id = U.user_id
+        LEFT JOIN Comments C ON C.user_id = U.user_id AND C.picture_id NOT IN (SELECT picture_id FROM Pictures WHERE user_id = U.user_id)
+        WHERE U.user_id != -1
+        GROUP BY U.user_id
+        ORDER BY contribution DESC
+        LIMIT 10
+    """
+    cursor.execute(contribution)
+    return cursor.fetchall()
 #default page
 @app.route("/", methods=['GET'])
 def hello():
-	return render_template('hello.html', message='Welcome to Photoshare')
+	if flask_login.current_user.is_authenticated:
+		uid = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		uid = -1
+	return render_template('hello.html', uid = uid, message='Welcome to Photoshare', TopUsers=getContribution())
+
+def YouMayAlsoLike(uid):
+    cursor = conn.cursor()
+    
+    # Get the top 5 most common tags for the user's photos
+    commontags_query = "SELECT T.singleword AS word FROM Tags T, Pictures P WHERE T.picture_id = P.picture_id AND P.user_id = %s GROUP BY T.singleword ORDER BY COUNT(T.singleword) DESC LIMIT 5"
+    cursor.execute(commontags_query, (uid,))
+    commontags = [row[0] for row in cursor.fetchall()]
+
+    # Get the IDs of photos that have at least one common tag with the user's photos, and count how many common tags they have
+    similarphotos_query = "SELECT P.picture_id, COUNT(T2.singleword) AS common_tags_count \
+                           FROM Pictures P, Tags T1, Tags T2 \
+                           WHERE P.picture_id = T1.picture_id AND T1.singleword IN %s AND T1.picture_id != T2.picture_id AND T2.singleword IN %s \
+                           GROUP BY P.picture_id \
+                           ORDER BY common_tags_count DESC, P.picture_id ASC \
+                           LIMIT 10"
+    cursor.execute(similarphotos_query, (commontags, commontags))
+    similarphotos = cursor.fetchall()
+
+    # Get photo data and additional info for each similar photo
+    photos = []
+    for picture_id, common_tags_count in similarphotos:
+        cursor.execute("SELECT P.caption, P.imgdata, U.firstname, U.lastname \
+                        FROM Pictures P, Users U \
+                        WHERE P.picture_id = %s AND P.user_id = U.user_id", (picture_id,))
+        photo_data = cursor.fetchone()
+
+        cursor.execute("SELECT T.singleword FROM Tags T WHERE T.picture_id = %s", (picture_id,))
+        photo_tags = [row[0] for row in cursor.fetchall()]
+
+        comments = GetComments(picture_id)
+        likes = NumberofLikes(picture_id)
+
+        photos.append([picture_id, common_tags_count, photo_data[0], photo_data[1], photo_data[2], photo_data[3], photo_tags, comments, likes])
+
+    return photos
+
+@app.route('/recommendphotos', methods=['GET', 'POST'])
+@flask_login.login_required
+def recommendPhotos():
+	uid=getUserIdFromEmail(flask_login.current_user.id)
+	return render_template('recommendPhotos.html', youmaylike = YouMayAlsoLike(uid))
+
 
 
 if __name__ == "__main__":
