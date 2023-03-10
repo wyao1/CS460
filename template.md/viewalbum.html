@@ -2,6 +2,15 @@
 
 <h1> Album {{title}} </h1>
 
+
+
+{% if pictures %}
+    {% if uid != -1 %}
+    <h1> <button><a href="{{ url_for('deletealbum', uid=name, albumid=album_id) }}">delete</a></button> </h1>
+    {% endif %}
+{% endif %}
+
+
 {% if pictures %}
 <h2>Here are all the photos</h2>
     <ul>
