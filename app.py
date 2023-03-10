@@ -174,7 +174,7 @@ def isEmailUnique(email):
 @app.route('/profile')
 @flask_login.login_required
 def protected():
-	return render_template('profile.html', name=flask_login.current_user.id, message="Here's your profile")
+	return render_template('profile.html', name=flask_login.current_user.id, uid = getUserIdFromEmail(flask_login.current_user.id), message="Here's your profile")
 
 #begin photo uploading code
 # photos uploaded using base64 encoding so they can be directly embeded in HTML
@@ -232,6 +232,11 @@ def getallpictures():
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
+
+def getallpicturesfromalbum(album_id):
+    cursor = conn.cursor()
+    cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures WHERE album = '{0}'".format(album_id))
+    return cursor.fetchall()
 
 #delete picture
 @app.route('/deletepicture/<uid>/<picture_id>', methods=['GET', 'POST'])
@@ -307,22 +312,24 @@ def mypictures():
 
 
 
-@app.route('/myalbums', methods=['GET', 'POST'])
+@app.route('/myalbums/<uid>', methods=['GET', 'POST'])
 @flask_login.login_required
-def myalbums():
-    uid = getUserIdFromEmail(flask_login.current_user.id)
-    return render_template('browsealbums.html', myalbums=getUsersAlbums(uid), base64=base64)
+def myalbums(uid):
+	albums = getAllAlbumsofUser(uid)
+	return render_template('browsealbums.html', myalbums = getFirstPic(albums), base64=base64)
+
 
 @app.route('/browsealbums', methods=['GET', 'POST'])
 @flask_login.login_required
 def browsealbums():
     uid = getUserIdFromEmail(flask_login.current_user.id)
-    return render_template('browsealbums.html', allalbums=getUsersAlbums(uid), base64=base64)
+    return render_template('browsealbums.html', allalbums = getFirstPic(getAllAlbums()), base64=base64)
 
-
-
-
-
+@app.route('/viewalbum/<albumid>,<title>', methods=['GET', 'POST'])
+@flask_login.login_required
+def viewalbum(albumid,title):
+	pictures = getallpicturesfromalbum(albumid)
+	return render_template('viewalbum.html', pictures = pictures, title = title, uid = getUserIdFromEmail(flask_login.current_user.id), base64=base64)
 
 def isAlbumUnique(title, uid):
 	cursor = conn.cursor()
@@ -360,25 +367,27 @@ def getUsersAlbums(uid):
 	cursor.execute("SELECT * FROM Albums WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE return a list of tuples, [(imgdata, pid, caption), ...]
 
+def getAllAlbumsofUser(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT album_id FROM Albums WHERE user_id = '{0}'".format(uid))
+	return cursor.fetchall()
+
 def getAllAlbums():
 	cursor = conn.cursor()
 	cursor.execute("SELECT album_id FROM Albums")
 	return cursor.fetchall()
 
-#gets a list of tuples of albumID and first picture
-def getFirstPic():
+#gets a list of tuples of albumID and first picture along with album title and imgdata
+#(album_ID, title, picture_ID, imgdata)
+def getFirstPic(albums):
     cursor = conn.cursor()
-    cursor.execute("SELECT album_id FROM Albums")
-    albums = cursor.fetchall()
-    album_picture_list = []
+    allalbums = []
     for album in albums:
-        album_id = album[0]
-        cursor.execute("SELECT picture_id FROM Pictures WHERE album_id={album_id} ORDER BY date_uploaded ASC LIMIT 1")
+        cursor.execute("SELECT album_id, title, picture_id, imgdata FROM Pictures JOIN Albums ON Pictures.album = Albums.album_id WHERE album_id = %s LIMIT 1", album)
         result = cursor.fetchone()
         if result:
-            picture_id = result[0]
-            album_picture_list.append((album_id, picture_id))
-    return album_picture_list
+            allalbums.append(result)
+    return allalbums
 
 #returns the number of likes on a picture
 def NumberofLikes(picture_id):
