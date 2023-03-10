@@ -191,7 +191,6 @@ def upload_file():
 		caption = request.form.get('caption')
 
 		current_datetime = str(datetime.datetime.now().year) + "-" + str(datetime.datetime.now().month) + "-" + str(datetime.datetime.now().day)
-		print(current_datetime)
 
 		album = request.form.get ('album')
 		if(isAlbumUnique(album, uid)): #true = creating new album
@@ -205,11 +204,6 @@ def upload_file():
 		picture_id = cursor.lastrowid
 
 		tags=str(request.form.get('tags')).lower().split(" ")
-
-		#delete after
-		print("in upload, the tags are")
-		for tag in tags:
-			print(tag)
 		
 		addTag(tags, picture_id)
 
@@ -217,7 +211,6 @@ def upload_file():
 		cursor.execute("SELECT singleword FROM Tags WHERE picture_id = '{0}'".format(picture_id))
 		conn.commit()
 		tags2 = cursor.fetchall()
-		print("testing if tags are stored")
 		print(tags2)
 		
 
@@ -266,7 +259,6 @@ def browsepictures():
 @app.route('/comment/<picture_id>', methods=['GET', 'POST'])
 @flask_login.login_required
 def comment(picture_id):
-	print("COMMENT ROUTE")
 	if flask_login.current_user.is_authenticated:   		
 		name = getUserIdFromEmail(flask_login.current_user.id)
 	else:
@@ -309,8 +301,6 @@ def picturedetail(photo):
 @app.route('/like/<photo>', methods=['GET','POST']) 
 @flask_login.login_required
 def like(photo):
-	print("PHOTO ID IS")
-	print(photo)
 	uid = getUserIdFromEmail(flask_login.current_user.id)
 	if request.method == 'GET':
 		cursor = conn.cursor()
@@ -350,8 +340,6 @@ def viewalbum(albumid,title):
 #deletealbum also makes use of deletepicture
 @app.route('/deletealbum/<albumid>')
 def deletealbum(albumid):
-	print("THE ALBUM ID IS")
-	print(albumid)
     # Delete all pictures in the album
 	user_id = getUserIdFromEmail(flask_login.current_user.id)
 	cursor = conn.cursor()
@@ -437,7 +425,6 @@ def NumberofLikes(picture_id):
 def tags(singleword):
 	user_id = getUserIdFromEmail(flask_login.current_user.id)
 	pictures = getallpictureswithtag(str(singleword))
-	print("TAGS ROUTE")
 	return render_template('tag.html', pictures=pictures, singleword=singleword, base64=base64)
 
 #checks if tag already exists
@@ -475,10 +462,6 @@ def getTagsofPicture(picture_id):
 	cursor.execute("SELECT singleword FROM Tags WHERE picture_id = '{0}'".format(picture_id))
 	conn.commit()
 	tags = cursor.fetchall()
-
-	print("this is the GETTAGSOFPICTURE FUNCITON")
-	print(tags)
-
 	return tags
 
 def getUserTags(uid):
