@@ -251,7 +251,7 @@ def deletepicture(uid, picture_id):
 	conn.commit()
 	cursor.execute("DELETE FROM Pictures WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id))
 	conn.commit()
-	return render_template('hello.html', name=flask_login.current_user.id, message='Photo deleted!', photos=getUsersPhotos(uid), base64=base64)
+	return render_template('hello.html', name=flask_login.current_user.id, message='Photo deleted!', base64=base64)
 
 #browse pictures
 @app.route('/browsepictures', methods=['GET', 'POST'])
@@ -262,6 +262,21 @@ def browsepictures():
 		name = -1
 	return  render_template('browsepictures.html', name = name, allphotos=getallpictures(), base64=base64)
 #end photo uploading code
+
+@app.route('/comment/<picture_id>', methods=['GET', 'POST'])
+@flask_login.login_required
+def comment(picture_id):
+	print("COMMENT ROUTE")
+	if flask_login.current_user.is_authenticated:   		
+		name = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		name = -1
+	if request.method == 'POST':
+			comment=request.form.get('comment')
+			insertComment(comment, picture_id)
+			print(comment)
+	return render_template('picturedetail.html', comments = GetComments(picture_id), tags = getTagsofPicture(picture_id), name=name, photo=getpicturedetail(picture_id), base64=base64)
+
 
 def getpicturedetail(photo):
 	cursor = conn.cursor()
@@ -288,7 +303,7 @@ def picturedetail(photo):
 		name = getUserIdFromEmail(flask_login.current_user.id)
 	else:
 		name = -1
-	return render_template('picturedetail.html', tags = getTagsofPicture(photo), name=name, photo=getpicturedetail(photo), base64=base64)
+	return render_template('picturedetail.html',  comments = GetComments(photo), tags = getTagsofPicture(photo), name=name, photo=getpicturedetail(photo), base64=base64)
 
 #liking a photo
 @app.route('/like/<photo>', methods=['GET','POST']) 
@@ -300,16 +315,13 @@ def like(photo):
 	if request.method == 'GET':
 		cursor = conn.cursor()
 		cursor.execute("INSERT INTO Likes (picture_id, user_id) VALUES ('{0}', '{1}')".format(photo, uid))
-		return render_template('picturedetail.html', message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
+		return render_template('picturedetail.html',  comments = GetComments(photo), message = "Liked the picture!", photo=getpicturedetail(photo), base64=base64)
 
 @app.route('/mypictures', methods=['GET','POST']) 
 @flask_login.login_required
 def mypictures():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
 	return render_template('browsepictures.html', photos = getUsersPhotos(uid), base64=base64)
-
-
-
 
 
 @app.route('/myalbums/<uid>', methods=['GET', 'POST'])
@@ -328,8 +340,29 @@ def browsealbums():
 @app.route('/viewalbum/<albumid>,<title>', methods=['GET', 'POST'])
 @flask_login.login_required
 def viewalbum(albumid,title):
+	if flask_login.current_user.is_authenticated:
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		user_id = -1
 	pictures = getallpicturesfromalbum(albumid)
-	return render_template('viewalbum.html', pictures = pictures, title = title, uid = getUserIdFromEmail(flask_login.current_user.id), base64=base64)
+	return render_template('viewalbum.html', albumid = albumid, pictures = pictures, title = title, uid = user_id, base64=base64)
+
+@app.route('/deletealbum,<uid>,<albumid>', methods=['GET', 'POST'])
+def deleteAlbum(uid,albumid):
+    print("DELETE ALBUM IS WORKING")
+    # Delete all pictures in the album
+    cursor = conn.cursor()
+    cursor.execute("SELECT picture_id FROM Pictures WHERE album_id = %s", (albumid,))
+    picture_ids = [r[0] for r in cursor.fetchall()]
+    for picture_id in picture_ids:
+        deletepicture(uid, picture_id)
+        
+    # Delete the album itself
+    cursor.execute("DELETE FROM Albums WHERE album_id = %s", (albumid,))
+    conn.commit()
+    return render_template('hello.html', name=flask_login.current_user.id, message='Album deleted!', base64=base64)
+
+
 
 def isAlbumUnique(title, uid):
 	cursor = conn.cursor()
@@ -377,6 +410,8 @@ def getAllAlbums():
 	cursor.execute("SELECT album_id FROM Albums")
 	return cursor.fetchall()
 
+
+
 #gets a list of tuples of albumID and first picture along with album title and imgdata
 #(album_ID, title, picture_ID, imgdata)
 def getFirstPic(albums):
@@ -410,7 +445,7 @@ def addTag(listoftags, picture_id):
 	for t in list(set(listoftags)):
 		if t != "" and isTagUnique(t, picture_id):
 			cursor = conn.cursor()
-			cursor.execute("INSERT INTO Tagged_Photos (word, photo_id) VALUES ('{0}', '{1}')".format(t, picture_id))
+			cursor.execute("INSERT INTO Tagged_Photos (word, picture_id) VALUES ('{0}', '{1}')".format(t, picture_id))
 			conn.commit()
 		   
 		
@@ -433,9 +468,36 @@ def getUserTags(uid):
 
 def deleteTags(tag, picture_id):
 	cursor = conn.cursor()
-	cursor.execute("DELETE FROM Tags WHERE word = '{0}' AND picture_id='{1}'".format(tag, picture_id))
+	cursor.execute("DELETE FROM Tags WHERE singleword = '{0}' AND picture_id='{1}'".format(tag, picture_id))
 	conn.commit()
 
+
+def isCommentUnique(uid, picture_id):
+	cursor = conn.cursor()
+	if cursor.execute("SELECT * FROM Photos WHERE user_id = '{0}' AND picture_id='{1}'".format(uid, picture_id)):
+		return False
+	else:
+		return True
+
+def insertComment(comment, picture_id):
+	if flask_login.current_user.is_authenticated:
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		user_id = -1
+	date_created= current_datetime = str(datetime.datetime.now().year) + "-" + str(datetime.datetime.now().month) + "-" + str(datetime.datetime.now().day)
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Comments(comment_text, user_id, date_created, picture_id) VALUES (%s, %s, %s, %s)", (comment, user_id, date_created, picture_id))
+	conn.commit()
+
+def GetComments(picture_id):
+	if flask_login.current_user.is_authenticated:
+		uid = getUserIdFromEmail(flask_login.current_user.id)
+	else:
+		uid = -1
+	cursor = conn.cursor()
+	cursor.execute("SELECT C.comment_text, C.picture_id, U.firstname, U.lastname FROM Comments C, Users U, Pictures P WHERE C.picture_id = '{0}' AND C.picture_id = P.picture_id AND C.user_id = U.user_id".format(picture_id))
+	commentlist = [[comment[0], comment[1], comment[2], comment[3]] for comment in cursor.fetchall()]
+	return commentlist
 
 
 #default page
