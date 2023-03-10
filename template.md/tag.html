@@ -1,0 +1,25 @@
+<!doctype html>
+
+
+<h1>Results for {{singleword}} among all photos</h1>
+{% if pictures %}
+<ul>
+  {% for picture in pictures %}
+    <li>
+      <h3>Picture ID: {{picture[0]}}</h3>
+      <img src='data:image/jpg;base64,{{ base64.b64encode(picture[1]).decode("ascii") }}'  style="width:40%; height:40%"/>
+    </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+
+&nbsp; &nbsp;
+
+<p> <a href='/browsepictures'>Browse Pictures!</a> </p>
+<p> <a href='/browsealbums'> Browse Albums!</a> </p>
+
+&nbsp; &nbsp;
+
+<p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+<p> <a href='/'>Home</a> </p>

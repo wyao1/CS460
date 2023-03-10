@@ -2,8 +2,12 @@
 -->
 <!doctype html>
 
-<p> <strong> <a href='/login'>Log In!</a> </strong> </p>
-<p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+{% if name != -1 %}
+  <p> <strong> <a href='/logout'>Log out!</a> </strong> </p>
+{% else %}
+  <p> <strong> <a href='/login'>Log In!</a> </strong> </p>
+{% endif %}
+
 <p> <a href='/'>Home</a> </p>
 
 
@@ -30,7 +34,7 @@
 <h2>Tags:</h2>
   <ul>
     {% for sing_tag in tags %}
-      <li>{{ sing_tag[0] }}</li>
+      <li><a href="{{ url_for('tags', singleword = sing_tag[0]) }}">{{ sing_tag[0] }}</a></li>
     {% endfor %}
   </ul>
 {% else %}
@@ -70,9 +74,12 @@
 <h2>Comments:</h2> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; no comments<br>
 {% endif %}
 
-<br><br>
-<form method="post" enctype="multipart/form-data" action="{{ url_for('comment', picture_id=photo[2]) }}">
-    <label for="Comment">Leave a Comment:</label>
-    <input type="text" name="comment" required='true' style="width: 500px; height: 50px;" /><br />
-    <input type="submit" value="comment" />
-</form>
+
+{% if name != photo[1] %}
+    <br><br>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('comment', picture_id=photo[2]) }}">
+      <label for="Comment">Leave a Comment:</label>
+      <input type="text" name="comment" required='true' style="width: 500px; height: 50px;" /><br />
+      <input type="submit" value="comment" />
+    </form>
+{% endif %}
